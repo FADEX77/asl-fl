@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  image        String?
+  role         UserRole  @default(USER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  team         UserTeam?
+}
+
+model UserTeam {
+  id             String           @id @default(cuid())
+  userId         String           @unique
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamName       String
+  budget         Float            @default(100.0)
+  totalPoints    Int              @default(0)
+  gameweekPoints Int              @default(0)
+  transfers      Int              @default(2)
+  players        PlayerOnTeam[]
+  history        GameweekHistory[]
+  boosts         Boosts?
+}
+
+model PlayerOnTeam {
+  id        String  @id @default(cuid())
+  teamId    String
+  team      UserTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id])
+  isStarter Boolean @default(false)
+  isCaptain Boolean @default(false)
+  isViceCaptain Boolean @default(false)
+}
+
+model Boosts {
+  id                String  @id @default(cuid())
+  teamId            String  @unique
+  team              UserTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  benchBoost        Boolean @default(true)
+  tripleCaptain     Boolean @default(true)
+  unlimitedTransfer Boolean @default(true)
+  managerBoost      Boolean @default(true)
+}
+
+model GameweekHistory {
+  id          String        @id @default(cuid())
+  teamId      String
+  team        UserTeam       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  gameweek    Int
+  points      Int
+  boostUsed   String?
+  transfers   Transfer[]
+  createdAt   DateTime      @default(now())
+}
+
+model Transfer {
+  id          String          @id @default(cuid())
+  historyId   String
+  history     GameweekHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
+  playerOutId String
+  playerInId  String
+  timestamp   DateTime        @default(now())
+}
+
+model Player {
+  id        String       @id @default(cuid())
+  name      String
+  position  Position
+  teamId    String
+  team      Team         @relation(fields: [teamId], references: [id])
+  price     Float
+  points    Int          @default(0)
+  teams     PlayerOnTeam[]
+  performances PlayerPerformance[]
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  shortName String   @unique
+  logoUrl   String?
+  players   Player[]
+}
+
+model PlayerPerformance {
+  id            String  @id @default(cuid())
+  playerId      String
+  player        Player  @relation(fields: [playerId], references: [id])
+  gameweek      Int
+  goals         Int     @default(0)
+  assists       Int     @default(0)
+  yellowCards   Int     @default(0)
+  redCards      Int     @default(0)
+  cleanSheet    Boolean @default(false)
+  started       Boolean @default(false)
+  subbedIn      Boolean @default(false)
+  finishedMatch Boolean @default(false)
+  manOfTheMatch Boolean @default(false)
+  points        Int     @default(0)
+}
+
+model Gameweek {
+  id          String   @id @default(cuid())
+  number      Int      @unique
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(false)
+  isCompleted Boolean  @default(false)
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum Position {
+  Goalkeeper
+  Defender
+  Midfielder
+  Forward
+}
+
